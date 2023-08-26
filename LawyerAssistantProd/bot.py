@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from storage_utils.load_from_firestore import FirestoreClient
 
 from aiogram import Bot, Dispatcher, executor, types
 logging.basicConfig(level=logging.INFO)
@@ -9,9 +10,10 @@ class TelegramBot:
 	def __init__(self, bot_token, llm_service=None):
 		self.admin = "alib_sa"
 		self.bot = Bot(token=bot_token)
-
-		self.allowed_users_path = "config/allowed_usernames.txt"
+		
+		self.firestore_client = FirestoreClient()
 		self.allowed_users: set = self.get_allowed_users()
+		self.only_allowed_users: bool = True
 
 		self.llm_service = llm_service
 
@@ -24,22 +26,15 @@ class TelegramBot:
 		Bot.set_current(self.dp.bot)
 
 	def get_allowed_users(self):
-		with open(self.allowed_users_path, "r") as file:
-			allowed_users = file.read().splitlines()
-		logging.info(f"allowed users {allowed_users}")
-		return set(allowed_users)
-
-	def set_allowed_users(self):
-		with open(self.allowed_users_path, "w") as file:
-			file.write('\n'.join(self.allowed_users))
+		return set(self.firestore_client.get_allowed_users())
 
 	async def send_welcome(self, message: types.Message):
 		logging.info(f"{message.from_user.username}, send_welcome")
-		# if message.from_user.username not in self.allowed_users:
-		# 	await message.answer("Привет, я юрист ассистент бот, могу отвечать на Ваши вопросы."
-		# 	                     "Пожалуйста, зарегистрируйтесь, для этого свяжитесь с админом")
-		# else:
-		await message.answer("Привет, я юрист ассистент бот, чем могу помочь? Сейчас могу помочь Вам с Трудовым Кодексом РК."
+		if self.only_allowed_users and message.from_user.username not in self.allowed_users:
+			await message.answer("Привет, я юрист ассистент бот, могу отвечать на Ваши вопросы."
+			                     "Пожалуйста, зарегистрируйтесь, для этого свяжитесь с админом")
+		else:
+			await message.answer("Привет, я юрист ассистент бот, чем могу помочь? Сейчас могу помочь Вам с Трудовым Кодексом РК."
 		                     " Еще учусь, поэтому прошу прощения за возможные ошибки.")
 
 	async def register_user(self, message: types.Message):
@@ -47,10 +42,7 @@ class TelegramBot:
 		if message.from_user.username == self.admin:
 			user_to_register = message.get_args().strip()
 			if len(user_to_register) > 0:
-				logging.info(f"Registering {user_to_register}...")
-				self.allowed_users.add(user_to_register)
-				logging.info(f"Allowed users {self.allowed_users}")
-				# self.set_allowed_users()
+				self.firestore_client.add_user_to_allowed(user_to_register)
 				await message.answer(f"{user_to_register} registered")
 			else:
 				logging.info(f"Allowed users {self.allowed_users}")
@@ -66,20 +58,18 @@ class TelegramBot:
 				logging.warning("Cannot remove admin")
 				await message.answer(f"Nothing to remove")
 				return
-			logging.info(f"Removing {user_to_remove}...")
-			self.allowed_users.discard(user_to_remove)
-			logging.info(f"Allowed users {self.allowed_users}")
-			# self.set_allowed_users()
+			self.firestore_client.remove_user_from_allowed(user_to_remove)
 			await message.answer(f"{user_to_remove} removed")
 		else:
 			await message.answer("Only admin can remove")
 
 	async def answer_to_question(self, message: types.Message):
 		logging.info(f"{message.from_user.username}, text {message.text}")
-		if message.from_user.username not in self.allowed_users:
+		if self.only_allowed_users and message.from_user.username not in self.allowed_users:
 			await message.answer("Пожалуйста, зарегистрируйтесь, для этого свяжитесь с админом")
 		else:
 			# do answer logic, run llm
+			await message.answer("Calling AI...")
 			result = self.llm_service.run(message.text)
 			print(f"LLM generates {result}")
 			await message.answer(result)

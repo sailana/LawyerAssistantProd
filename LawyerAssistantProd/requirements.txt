@@ -4,3 +4,4 @@ openai==0.27.8
 chromadb==0.3.26
 tiktoken==0.4.0
 google-cloud-firestore==2.11.1
+firebase-admin==6.2.0
