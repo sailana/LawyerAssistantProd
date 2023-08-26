@@ -46,12 +46,12 @@ split_documents = text_splitter.split_documents(documents)
 for document in split_documents:
     document.metadata = {"source": "Трудовой Кодекс РК"}
 #
-os.environ["OPENAI_API_KEY"] = "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"
-embeddings = OpenAIEmbeddings()
-vectorstore_name = "prod_chroma"
-vectordb = Chroma.from_documents(split_documents, embedding=embeddings,
-                                 persist_directory=vectorstore_name)
-vectordb.persist()
+# os.environ["OPENAI_API_KEY"] = "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"
+# embeddings = OpenAIEmbeddings()
+# vectorstore_name = "prod_chroma"
+# vectordb = Chroma.from_documents(split_documents, embedding=embeddings,
+#                                  persist_directory=vectorstore_name)
+# vectordb.persist()
 #
 
 #

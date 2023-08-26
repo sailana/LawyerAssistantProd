@@ -8,7 +8,7 @@ from langchain.vectorstores import Chroma
 from langchain.prompts import PromptTemplate
 from langchain.chat_models import ChatOpenAI
 
-os.environ["OPENAI_API_KEY"]="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"
+# os.environ["OPENAI_API_KEY"]="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"
 
 def llm_is_greeting(user_input, llm=None):
   if llm is None:

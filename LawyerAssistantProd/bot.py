@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from storage_utils.load_from_firestore import FirestoreClient
+from storage_utils.firestore_client import FirestoreClient
+import json
 
 from aiogram import Bot, Dispatcher, executor, types
 logging.basicConfig(level=logging.INFO)
@@ -64,6 +65,11 @@ class TelegramBot:
 			await message.answer("Only admin can remove")
 
 	async def answer_to_question(self, message: types.Message):
+		logging.info(f"Message {message}")
+		chat_id = f"chat_{message.chat.id}"
+		chat_metadata = {"username":message.chat.username, "first_name": message.chat.first_name, "last_name": message.chat.last_name, "history": [],
+		   "last_message": message.text}
+		self.firestore_client.add_chat_to_chats(chat_id=chat_id, chat_metadata_with_history=chat_metadata)
 		logging.info(f"{message.from_user.username}, text {message.text}")
 		if self.only_allowed_users and message.from_user.username not in self.allowed_users:
 			await message.answer("Пожалуйста, зарегистрируйтесь, для этого свяжитесь с админом")
